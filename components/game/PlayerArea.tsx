@@ -19,12 +19,12 @@ const PlayerArea: React.FC<PlayerAreaProps> = ({ player, availablePieces, isCurr
   return (
     <motion.div 
       className={`
-        player-area relative
+        player-area-side relative
         ${player === 'player1' ? 'player1' : 'player2'}
         ${isCurrentPlayer ? 'pulse-animation' : ''}
       `}
-      initial={{ opacity: 0, y: player === 'player1' ? -20 : 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, x: player === 'player1' ? 20 : -20 }}
+      animate={{ opacity: 1, x: 0 }}
       transition={{ 
         type: "spring",
         stiffness: 100,
@@ -36,7 +36,7 @@ const PlayerArea: React.FC<PlayerAreaProps> = ({ player, availablePieces, isCurr
         {player === 'player1' ? 'Player 1' : 'Player 2'}
       </div>
       
-      <div className="flex flex-row justify-center gap-6 p-4">
+      <div className="flex flex-col items-center gap-4 py-2">
         {pieceTypes.map((size) => {
           const count = availablePieces[size];
           const piece = {
@@ -52,7 +52,7 @@ const PlayerArea: React.FC<PlayerAreaProps> = ({ player, availablePieces, isCurr
                 count={count} 
                 disabled={!isCurrentPlayer}
               />
-              <div className="mt-2 text-sm font-bold text-center text-white">
+              <div className="mt-1 text-sm font-bold text-center text-white">
                 {size.charAt(0).toUpperCase() + size.slice(1)}
               </div>
             </div>
@@ -61,8 +61,8 @@ const PlayerArea: React.FC<PlayerAreaProps> = ({ player, availablePieces, isCurr
       </div>
       
       {isCurrentPlayer && (
-        <div className="text-center mt-2 text-white font-bold">
-          Drag an egg to place it on the board
+        <div className="text-center mt-2 text-white text-sm font-bold">
+          Drag an egg
         </div>
       )}
     </motion.div>

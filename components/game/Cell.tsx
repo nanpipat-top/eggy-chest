@@ -15,6 +15,12 @@ interface CellProps {
 }
 
 const Cell: React.FC<CellProps> = ({ cell, onClick }) => {
+  // Handle case when cell is undefined
+  if (!cell) {
+    console.error('Cell is undefined');
+    return <div className="game-cell w-full h-full bg-white/10 backdrop-blur-sm rounded-lg shadow-lg border border-white/20"></div>;
+  }
+  
   const { row, col, pieces } = cell;
   const { selectedPiece, board } = useGameStore();
   
@@ -77,9 +83,9 @@ const Cell: React.FC<CellProps> = ({ cell, onClick }) => {
             src={getPieceImage(topPiece.player, topPiece.size)} 
             alt={`${topPiece.player} ${topPiece.size} piece`}
             className={`
-              ${topPiece.size === 'small' ? 'w-12 h-12 md:w-16 md:h-16' : 
-              topPiece.size === 'medium' ? 'w-16 h-16 md:w-20 md:h-20' : 
-              'w-20 h-20 md:w-24 md:h-24'}
+              ${topPiece.size === 'small' ? 'w-16 h-16 md:w-20 md:h-20' : 
+              topPiece.size === 'medium' ? 'w-22 h-22 md:w-28 md:h-28' : 
+              'w-28 h-28 md:w-36 md:h-36'}
             `}
           />
         </div>

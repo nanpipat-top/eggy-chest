@@ -1,19 +1,26 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import { subscribeToGameRoom, joinGameRoom, leaveGameRoom, setPlayerReady, makeMove } from '@/lib/online-game';
+import { 
+  getGameRoom, 
+  subscribeToGameRoom, 
+  joinGameRoom, 
+  setPlayerReady, 
+  makeMove,
+  leaveGameRoom,
+  deleteGameRoom
+} from '@/lib/online-game';
 import { GameRoom, Player, Piece, BoardPosition } from '@/lib/types';
 import { useGameStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Egg, Users, Copy, CheckCircle, XCircle, Clock, Trophy, ArrowLeft } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, Egg, Users, Copy, Clock, Trophy } from 'lucide-react';
+import OnlinePlayerArea from '@/components/game/OnlinePlayerArea';
+import OnlineCell from '@/components/game/OnlineCell';
 import { isValidMove } from '@/lib/game-utils';
 import { playSound } from '@/lib/sounds';
-import DroppableCell from '@/components/game/DroppableCell';
-import PlayerArea from '@/components/game/PlayerArea';
 
 export default function OnlineGameRoom() {
   const params = useParams();
@@ -27,20 +34,11 @@ export default function OnlineGameRoom() {
   const [playerId, setPlayerId] = useState('');
   const [playerName, setPlayerName] = useState('');
   const [playerRole, setPlayerRole] = useState<Player | 'spectator'>('spectator');
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [validDropCells, setValidDropCells] = useState<{row: number, col: number}[]>([]);
   const [roomCodeCopied, setRoomCodeCopied] = useState(false);
+  const [selectedPiece, setSelectedPiece] = useState<Piece | null>(null);
+  const [validCells, setValidCells] = useState<{row: number, col: number}[]>([]);
   
   const { setGameState } = useGameStore();
-  
-  // Set up sensors for drag and drop
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 5,
-      },
-    })
-  );
   
   // Load player info from localStorage
   useEffect(() => {
@@ -111,55 +109,43 @@ export default function OnlineGameRoom() {
     }
   };
   
-  // Handle drag start
-  const handleDragStart = (event: any) => {
-    const { active } = event;
-    setActiveId(active.id as string);
+  // Handle piece selection
+  const handleSelectPiece = (piece: Piece) => {
+    setSelectedPiece(piece);
     
-    // Find valid drop targets for this piece
-    const piece = (active.data.current as any)?.piece;
-    if (piece && room) {
-      const validCells = [];
+    // Calculate valid cells for this piece
+    if (room && room.status === 'playing') {
+      const newValidCells: {row: number, col: number}[] = [];
+      
+      // Check each cell on the board
       for (let row = 0; row < 3; row++) {
         for (let col = 0; col < 3; col++) {
+          const position = `${row}-${col}` as BoardPosition;
+          const cellState = room.gameState.board[position];
+          
+          // Check if this is a valid move
           if (isValidMove(room.gameState.board, row, col, piece)) {
-            validCells.push({row, col});
+            newValidCells.push({ row, col });
           }
         }
       }
-      setValidDropCells(validCells);
-      playSound('select');
-    }
-  };
-  
-  // Handle drag end
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-    
-    // Clear drag state first
-    setActiveId(null);
-    setValidDropCells([]);
-    
-    // Then handle the drop logic
-    if (over && over.data.current && room) {
-      const piece = (active.data.current as any)?.piece as Piece;
-      const { row, col } = (over.data.current as any);
       
-      if (piece && row !== undefined && col !== undefined) {
-        try {
-          await makeMove(roomId, playerId, piece, row, col);
-        } catch (error) {
-          console.error('Error making move:', error);
-        }
-      }
+      setValidCells(newValidCells);
     }
   };
   
-  // Handle drag cancel
-  const handleDragCancel = () => {
-    setActiveId(null);
-    setValidDropCells([]);
-    playSound('invalid');
+  // Handle cell click
+  const handleCellClick = (row: number, col: number) => {
+    if (selectedPiece && room && room.status === 'playing' && 
+        playerRole === room.currentTurn) {
+      // Make the move
+      makeMove(roomId, playerId, selectedPiece, row, col);
+      playSound('place');
+      
+      // Reset selection
+      setSelectedPiece(null);
+      setValidCells([]);
+    }
   };
   
   // Copy room code to clipboard
@@ -171,13 +157,78 @@ export default function OnlineGameRoom() {
     }
   };
   
-  // Return to main menu
-  const handleReturnToMenu = async () => {
-    if (room) {
+  // Handle returning to main menu
+  const handleMainMenu = async () => {
+    if (playerRole !== 'spectator') {
       await leaveGameRoom(roomId, playerId);
     }
+    
+    // Delete the room if the game is finished
+    if (room?.status === 'finished') {
+      try {
+        await deleteGameRoom(roomId);
+        console.log('Game room deleted successfully');
+      } catch (error) {
+        console.error('Error deleting game room:', error);
+      }
+    }
+    
+    // Clear any session storage
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem(`eggyChessOnlineGame-${roomId}`);
+    }
+    
     router.push('/');
   };
+  
+  // Handle play again
+  const handlePlayAgain = async () => {
+    // Delete the current room since the game is finished
+    try {
+      await deleteGameRoom(roomId);
+      console.log('Game room deleted successfully');
+    } catch (error) {
+      console.error('Error deleting game room:', error);
+    }
+    
+    // Clear any session storage
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem(`eggyChessOnlineGame-${roomId}`);
+    }
+    
+    // Create a new game
+    router.push('/online');
+  };
+  
+  // Clear session on page unload
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // Only clean up if the user is a player and the game is finished
+      if (playerRole !== 'spectator' && room?.status === 'finished') {
+        // We can't await in beforeUnload, so this is a best-effort attempt
+        deleteGameRoom(roomId).catch(console.error);
+      }
+      
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem(`eggyChessOnlineGame-${roomId}`);
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      
+      // Clean up when component unmounts
+      if (playerRole !== 'spectator' && room?.status === 'finished') {
+        deleteGameRoom(roomId).catch(console.error);
+      }
+      
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem(`eggyChessOnlineGame-${roomId}`);
+      }
+    };
+  }, [roomId, playerRole, room?.status]);
   
   if (isLoading) {
     return (
@@ -191,7 +242,7 @@ export default function OnlineGameRoom() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4">
         <div className="text-white text-xl mb-4">{error || 'Room not found'}</div>
-        <Button onClick={handleReturnToMenu}>Return to Main Menu</Button>
+        <Button onClick={handleMainMenu}>Return to Main Menu</Button>
       </div>
     );
   }
@@ -216,7 +267,7 @@ export default function OnlineGameRoom() {
         <Button 
           variant="outline" 
           className="mb-4 md:mb-0 bg-white/20 text-white"
-          onClick={handleReturnToMenu}
+          onClick={handleMainMenu}
         >
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to Menu
         </Button>
@@ -329,33 +380,30 @@ export default function OnlineGameRoom() {
       {/* Game board */}
       {room.status !== 'waiting' && (
         <div className="w-full max-w-4xl">
-          <DndContext
-            sensors={sensors}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            onDragCancel={handleDragCancel}
-          >
-            <div className="flex flex-col items-center gap-6">
-              {/* Player 2 Area */}
-              <div className="w-full max-w-md bg-green-100/20 rounded-lg p-2">
-                <PlayerArea
+          <div className="flex flex-col items-center gap-6">
+            {/* Game layout with players on the sides */}
+            <div className="flex flex-col md:flex-row items-center justify-center gap-6 w-full">
+              {/* Player 2 Area - Left */}
+              <div className="player-area-container">
+                <OnlinePlayerArea
                   player="player2"
                   availablePieces={room.gameState.availablePieces.player2}
                   isCurrentPlayer={room.currentTurn === 'player2' && playerRole === 'player2'}
+                  onSelectPiece={handleSelectPiece}
                 />
               </div>
               
               {/* Game Board */}
-              <div className="game-container w-full max-w-xl mx-auto">
+              <div className="game-container max-w-xl mx-auto">
                 <div className={`
-                  turn-indicator
-                  ${room.currentTurn === 'player1' ? 'player1-turn' : 'player2-turn'}
+                  turn-indicator mb-4 py-2 px-4 rounded-full text-center text-white font-bold
+                  ${room.currentTurn === 'player1' ? 'bg-yellow-500/70' : 'bg-green-500/70'}
                 `}>
                   {room.currentTurn === 'player1' ? room.player1?.name : room.player2?.name}'s Turn
                 </div>
                 
                 <motion.div 
-                  className="board-container"
+                  className="board-container bg-white/5 backdrop-blur-md rounded-xl p-6 shadow-xl border border-white/10"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ 
@@ -371,15 +419,18 @@ export default function OnlineGameRoom() {
                         Array.from({ length: 3 }, (_, colIndex) => {
                           const position = `${rowIndex}-${colIndex}` as const;
                           const cell = room.gameState.board[position];
-                          const isValidTarget = validDropCells.some(
+                          const isValidCell = validCells.some(
                             vc => vc.row === rowIndex && vc.col === colIndex
                           );
                           
                           return (
-                            <DroppableCell 
+                            <OnlineCell 
                               key={`${rowIndex}-${colIndex}`} 
                               cell={cell}
-                              isValidDropTarget={isValidTarget}
+                              row={rowIndex}
+                              col={colIndex}
+                              isValidCell={isValidCell}
+                              onClick={handleCellClick}
                             />
                           );
                         })
@@ -389,16 +440,17 @@ export default function OnlineGameRoom() {
                 </motion.div>
               </div>
               
-              {/* Player 1 Area */}
-              <div className="w-full max-w-md bg-yellow-100/20 rounded-lg p-2">
-                <PlayerArea
+              {/* Player 1 Area - Right */}
+              <div className="player-area-container">
+                <OnlinePlayerArea
                   player="player1"
                   availablePieces={room.gameState.availablePieces.player1}
                   isCurrentPlayer={room.currentTurn === 'player1' && playerRole === 'player1'}
+                  onSelectPiece={handleSelectPiece}
                 />
               </div>
             </div>
-          </DndContext>
+          </div>
         </div>
       )}
       
@@ -437,9 +489,12 @@ export default function OnlineGameRoom() {
             </p>
             
             <div className="flex flex-col gap-3">
-              <Button onClick={handleReturnToMenu} className="w-full">
+              <Button onClick={handleMainMenu} className="w-full">
                 Return to Main Menu
               </Button>
+              {/* <Button onClick={handlePlayAgain} className="w-full">
+                Play Again
+              </Button> */}
             </div>
           </motion.div>
         </div>

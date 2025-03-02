@@ -42,7 +42,7 @@ const PieceSelector: React.FC<PieceSelectorProps> = ({ player, isActive, pieceCo
   };
   
   return (
-    <div className="flex flex-row justify-center gap-6">
+    <div className="flex flex-col items-center gap-4">
       <AnimatePresence>
         {pieceTypes.map((size) => {
           const count = pieceCounts[size];
@@ -53,7 +53,7 @@ const PieceSelector: React.FC<PieceSelectorProps> = ({ player, isActive, pieceCo
             <motion.div
               key={size}
               className={`relative ${!isAvailable ? 'opacity-40' : ''}`}
-              initial={{ scale: 0, opacity: 0, alignContent: 'center' }}
+              initial={{ scale: 0, opacity: 0 }}
               animate={{ 
                 scale: 1, 
                 opacity: isAvailable ? 1 : 0.4,
@@ -83,7 +83,7 @@ const PieceSelector: React.FC<PieceSelectorProps> = ({ player, isActive, pieceCo
                 />
                 
                 {count > 0 && (
-                  <div className="piece-count">{count}</div>
+                  <span className="piece-count absolute -top-2 -right-2 bg-white text-black text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">{count}</span>
                 )}
               </motion.div>
             </motion.div>
@@ -93,7 +93,7 @@ const PieceSelector: React.FC<PieceSelectorProps> = ({ player, isActive, pieceCo
       
       {isActive && selectedPiece?.player === player && (
         <motion.div
-          className="mt-4 text-center text-white font-bold absolute -bottom-8 left-0 right-0"
+          className="text-center text-white font-bold text-sm w-full"
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 10 }}

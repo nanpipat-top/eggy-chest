@@ -91,8 +91,11 @@ const GameBoard: React.FC = () => {
         >
           <div className="game-board">
             <div className="grid grid-cols-3 gap-4 w-full aspect-square">
-              {board.map((row, rowIndex) => (
-                row.map((cell, colIndex) => {
+              {Array.from({ length: 3 }, (_, rowIndex) => (
+                Array.from({ length: 3 }, (_, colIndex) => {
+                  const position = `${rowIndex}-${colIndex}` as const;
+                  const cell = board[position];
+                  
                   const isValidTarget = validDropCells.some(
                     vc => vc.row === rowIndex && vc.col === colIndex
                   );

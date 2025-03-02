@@ -65,8 +65,11 @@ const DroppableCell: React.FC<DroppableCellProps> = ({ cell, isValidDropTarget }
           <img 
             src={getPieceImage(topPiece.player, topPiece.size)} 
             alt={`${topPiece.player} ${topPiece.size} piece`}
-            className={`piece-img-${topPiece.size}`}
-            style={{ width: 'auto', height: 'auto' }}
+            className={`
+              ${topPiece.size === 'small' ? 'w-16 h-16 md:w-20 md:h-20' : 
+              topPiece.size === 'medium' ? 'w-22 h-22 md:w-28 md:h-28' : 
+              'w-28 h-28 md:w-36 md:h-36'}
+            `}
           />
         </div>
       )}

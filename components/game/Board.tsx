@@ -36,14 +36,24 @@ const Board: React.FC = () => {
       >
         <div className="game-board">
           <div className="grid grid-cols-3 gap-4 w-full aspect-square">
-            {board.map((row, rowIndex) => (
-              row.map((cell, colIndex) => (
-                <Cell 
-                  key={`${rowIndex}-${colIndex}`} 
-                  cell={cell} 
-                  onClick={() => handleCellClick(rowIndex, colIndex)} 
-                />
-              ))
+            {Array.from({ length: 3 }, (_, rowIndex) => (
+              Array.from({ length: 3 }, (_, colIndex) => {
+                const position = `${rowIndex}-${colIndex}` as const;
+                const cell = board[position];
+                
+                // Add debugging to check if cell exists
+                if (!cell) {
+                  console.error(`Cell at position ${position} is undefined`);
+                }
+                
+                return (
+                  <Cell 
+                    key={`${rowIndex}-${colIndex}`} 
+                    cell={cell} 
+                    onClick={() => handleCellClick(rowIndex, colIndex)} 
+                  />
+                );
+              })
             ))}
           </div>
         </div>

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { GameState, Player, Piece, PieceSize, Board, Cell, Move } from './types';
+import { GameState, Player, Piece, PieceSize, Board, Cell, Move, BoardPosition } from './types';
 import { generateInitialBoard, checkWinCondition, isValidMove, generatePieceId } from './game-utils';
 import { playSound } from './sounds';
 
@@ -56,7 +56,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const newBoard = JSON.parse(JSON.stringify(board)) as Board;
     
     // Add the piece to the cell
-    newBoard[row][col].pieces.push(selectedPiece);
+    const position = `${row}-${col}` as BoardPosition;
+    newBoard[position].pieces.push(selectedPiece);
     
     // Update available pieces
     const newAvailablePieces = { ...availablePieces };
@@ -114,7 +115,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const newBoard = JSON.parse(JSON.stringify(board)) as Board;
     
     // Add the piece to the cell
-    newBoard[row][col].pieces.push(piece);
+    const position = `${row}-${col}` as BoardPosition;
+    newBoard[position].pieces.push(piece);
     
     // Update available pieces
     const newAvailablePieces = { ...availablePieces };

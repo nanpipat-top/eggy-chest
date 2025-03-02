@@ -27,6 +27,11 @@ const GameOver: React.FC<GameOverProps> = ({ onPlayAgain, onMainMenu }) => {
     } else if (gameStatus === 'draw') {
       playSound('draw');
     }
+    
+    // Clear session storage when game is over
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('eggyChessGameState');
+    }
   }, [gameStatus]);
   
   return (
@@ -75,7 +80,7 @@ const GameOver: React.FC<GameOverProps> = ({ onPlayAgain, onMainMenu }) => {
           </p>
           
           <div className="flex flex-col gap-3">
-            <motion.button
+            {/* <motion.button
               className="game-button w-full"
               onClick={onPlayAgain}
               whileHover={{ scale: 1.05, y: -3 }}
@@ -83,7 +88,7 @@ const GameOver: React.FC<GameOverProps> = ({ onPlayAgain, onMainMenu }) => {
             >
               Play Again
             </motion.button>
-            
+             */}
             <motion.button
               className="game-button w-full"
               onClick={onMainMenu}

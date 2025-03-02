@@ -43,18 +43,7 @@ export const createGameRoom = async (roomName: string, creatorName: string, crea
     };
     
     // Create a serializable board without nested arrays
-    const initialBoard: InitialBoard = generateInitialBoard();
-    const serializableBoard: Board = {};
-    initialBoard.forEach((row, rowIndex) => {
-      row.forEach((cell, colIndex) => {
-        const position: BoardPosition = `${rowIndex}-${colIndex}`;
-        serializableBoard[position] = {
-          row: cell.row,
-          col: cell.col,
-          pieces: []
-        };
-      });
-    });
+    const serializableBoard: Board = generateInitialBoard();
     
     const initialGameState: GameState = {
       board: serializableBoard,
@@ -86,7 +75,7 @@ export const createGameRoom = async (roomName: string, creatorName: string, crea
     // Create the document with a specific ID
     // Convert to plain object to ensure it's serializable
     const serializableRoom = JSON.parse(JSON.stringify(newRoom));
-    await setDoc(doc(db, 'rooms', roomId), serializableRoom);
+    await setDoc(doc(db, 'gameRooms', roomId), serializableRoom);
     return roomId;
   } catch (error) {
     console.error('Error creating game room:', error);
@@ -97,7 +86,7 @@ export const createGameRoom = async (roomName: string, creatorName: string, crea
 // Join an existing game room
 export const joinGameRoom = async (roomId: string, playerName: string, playerId: string): Promise<boolean> => {
   try {
-    const roomRef = doc(db, 'rooms', roomId);
+    const roomRef = doc(db, 'gameRooms', roomId);
     const roomSnap = await getDoc(roomRef);
     
     if (!roomSnap.exists()) {
@@ -164,7 +153,7 @@ export const joinGameRoom = async (roomId: string, playerName: string, playerId:
 // Leave a game room
 export const leaveGameRoom = async (roomId: string, playerId: string): Promise<void> => {
   try {
-    const roomRef = doc(db, 'rooms', roomId);
+    const roomRef = doc(db, 'gameRooms', roomId);
     const roomSnap = await getDoc(roomRef);
     
     if (!roomSnap.exists()) {
@@ -234,7 +223,7 @@ export const leaveGameRoom = async (roomId: string, playerId: string): Promise<v
 // Set player ready status
 export const setPlayerReady = async (roomId: string, playerId: string, isReady: boolean): Promise<void> => {
   try {
-    const roomRef = doc(db, 'rooms', roomId);
+    const roomRef = doc(db, 'gameRooms', roomId);
     const roomSnap = await getDoc(roomRef);
     
     if (!roomSnap.exists()) {
@@ -263,19 +252,8 @@ export const setPlayerReady = async (roomId: string, playerId: string, isReady: 
     
     // Check if both players are ready to start the game
     if (roomData.player1?.isReady && roomData.player2?.isReady) {
-      // Create a serializable board without nested arrays
-      const initialBoard: InitialBoard = generateInitialBoard();
-      const serializableBoard: Board = {};
-      initialBoard.forEach((row, rowIndex) => {
-        row.forEach((cell, colIndex) => {
-          const position: BoardPosition = `${rowIndex}-${colIndex}`;
-          serializableBoard[position] = {
-            row: cell.row,
-            col: cell.col,
-            pieces: []
-          };
-        });
-      });
+      // Use the board directly since generateInitialBoard now returns a Board object
+      const serializableBoard: Board = generateInitialBoard();
       
       // Start the game
       const initialGameState: GameState = {
@@ -316,7 +294,7 @@ export const makeMove = async (
   col: number
 ): Promise<void> => {
   try {
-    const roomRef = doc(db, 'rooms', roomId);
+    const roomRef = doc(db, 'gameRooms', roomId);
     const roomSnap = await getDoc(roomRef);
     
     if (!roomSnap.exists()) {
@@ -399,22 +377,52 @@ export const makeMove = async (
 // Get a list of available game rooms
 export const getGameRooms = async (): Promise<GameRoom[]> => {
   try {
-    const roomsCollection = collection(db, 'rooms');
-    const q = query(
-      roomsCollection, 
-      where('status', '!=', 'finished'),
-      orderBy('createdAt', 'desc'),
-      limit(20)
-    );
+    const roomsCollection = collection(db, 'gameRooms');
     
-    const querySnapshot = await getDocs(q);
-    const rooms: GameRoom[] = [];
-    
-    querySnapshot.forEach((doc) => {
-      rooms.push(doc.data() as GameRoom);
-    });
-    
-    return rooms;
+    // Try the optimized query first (requires index)
+    try {
+      const q = query(
+        roomsCollection, 
+        where('status', '!=', 'finished'),
+        orderBy('createdAt', 'desc'),
+        limit(20)
+      );
+      
+      const querySnapshot = await getDocs(q);
+      const rooms: GameRoom[] = [];
+      
+      querySnapshot.forEach((doc) => {
+        rooms.push(doc.data() as GameRoom);
+      });
+      
+      return rooms;
+    } catch (indexError) {
+      console.warn('Index not yet available, falling back to simpler query:', indexError);
+      
+      // Fallback to a simpler query that doesn't require an index
+      const simpleQuery = query(
+        roomsCollection,
+        limit(20)
+      );
+      
+      const querySnapshot = await getDocs(simpleQuery);
+      const rooms: GameRoom[] = [];
+      
+      // Filter in memory instead
+      querySnapshot.forEach((doc) => {
+        const room = doc.data() as GameRoom;
+        if (room.status !== 'finished') {
+          rooms.push(room);
+        }
+      });
+      
+      // Sort in memory
+      rooms.sort((a, b) => {
+        return b.createdAt - a.createdAt; // Sort by timestamp directly
+      });
+      
+      return rooms;
+    }
   } catch (error) {
     console.error('Error getting game rooms:', error);
     throw error;
@@ -424,7 +432,7 @@ export const getGameRooms = async (): Promise<GameRoom[]> => {
 // Get a specific game room
 export const getGameRoom = async (roomId: string): Promise<GameRoom | null> => {
   try {
-    const roomRef = doc(db, 'rooms', roomId);
+    const roomRef = doc(db, 'gameRooms', roomId);
     const roomSnap = await getDoc(roomRef);
     
     if (!roomSnap.exists()) {
@@ -443,7 +451,7 @@ export const subscribeToGameRoom = (
   roomId: string, 
   callback: (room: GameRoom | null) => void
 ): (() => void) => {
-  const roomRef = doc(db, 'rooms', roomId);
+  const roomRef = doc(db, 'gameRooms', roomId);
   
   const unsubscribe = onSnapshot(roomRef, (doc) => {
     if (doc.exists()) {
@@ -457,6 +465,18 @@ export const subscribeToGameRoom = (
   });
   
   return unsubscribe;
+};
+
+// Delete a game room
+export const deleteGameRoom = async (roomId: string): Promise<void> => {
+  try {
+    const roomRef = doc(db, 'gameRooms', roomId);
+    await deleteDoc(roomRef);
+    console.log(`Game room ${roomId} has been deleted`);
+  } catch (error) {
+    console.error('Error deleting game room:', error);
+    throw error;
+  }
 };
 
 // Helper function to check for win conditions
