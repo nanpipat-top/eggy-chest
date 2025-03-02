@@ -6,10 +6,12 @@ import { motion } from 'framer-motion';
 import { 
   getGameRoom, 
   subscribeToGameRoom, 
-  joinGameRoom, 
+  joinGameRoom as joinRoom, 
+  leaveGameRoom as leaveRoom, 
   setPlayerReady, 
-  makeMove,
-  leaveGameRoom,
+  makeMove, 
+  startGame,
+  completeCoinFlip,
   deleteGameRoom
 } from '@/lib/online-game';
 import { GameRoom, Player, Piece, BoardPosition } from '@/lib/types';
@@ -18,7 +20,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, CheckCircle, XCircle, Egg, Users, Copy, Clock, Trophy } from 'lucide-react';
 import OnlinePlayerArea from '@/components/game/OnlinePlayerArea';
-import OnlineCell from '@/components/game/OnlineCell';
+import OnlineCoinFlip from '@/components/ui/OnlineCoinFlip';
+import OnlineBoard from '@/components/game/OnlineBoard';
 import { isValidMove } from '@/lib/game-utils';
 import { playSound } from '@/lib/sounds';
 
@@ -55,16 +58,16 @@ export default function OnlineGameRoom() {
   useEffect(() => {
     if (!roomId || !playerId || !playerName) return;
     
-    const joinRoom = async () => {
+    const joinGameRoom = async () => {
       try {
-        await joinGameRoom(roomId, playerName, playerId);
+        await joinRoom(roomId, playerName, playerId);
       } catch (error) {
         console.error('Error joining room:', error);
         setError('Failed to join room');
       }
     };
     
-    joinRoom();
+    joinGameRoom();
     
     // Subscribe to room updates
     const unsubscribe = subscribeToGameRoom(roomId, (updatedRoom) => {
@@ -94,7 +97,7 @@ export default function OnlineGameRoom() {
     // Leave room when component unmounts
     return () => {
       unsubscribe();
-      leaveGameRoom(roomId, playerId);
+      leaveRoom(roomId, playerId);
     };
   }, [roomId, playerId, playerName, setGameState]);
   
@@ -148,6 +151,26 @@ export default function OnlineGameRoom() {
     }
   };
   
+  // Handle starting the game
+  const handleStartGame = async () => {
+    if (!room || playerRole === 'spectator') return;
+    
+    try {
+      await startGame(roomId, playerId);
+    } catch (error) {
+      console.error('Error starting game:', error);
+    }
+  };
+  
+  // Handle completing the coin flip
+  const handleCoinFlipComplete = async () => {
+    try {
+      await completeCoinFlip(roomId);
+    } catch (error) {
+      console.error('Error completing coin flip:', error);
+    }
+  };
+  
   // Copy room code to clipboard
   const copyRoomCode = () => {
     if (typeof navigator !== 'undefined') {
@@ -160,7 +183,7 @@ export default function OnlineGameRoom() {
   // Handle returning to main menu
   const handleMainMenu = async () => {
     if (playerRole !== 'spectator') {
-      await leaveGameRoom(roomId, playerId);
+      await leaveRoom(roomId, playerId);
     }
     
     // Delete the room if the game is finished
@@ -315,6 +338,11 @@ export default function OnlineGameRoom() {
                   <Clock className="h-5 w-5 animate-pulse" />
                   Waiting for players to get ready
                 </div>
+              ) : room.status === 'coin_flip' ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-amber-400 animate-pulse"></div>
+                  Coin Flip in Progress
+                </div>
               ) : room.status === 'playing' ? (
                 <div className="flex items-center justify-center gap-2">
                   <div className={`w-3 h-3 rounded-full ${room.currentTurn === 'player1' ? 'bg-amber-400' : 'bg-blue-400'} animate-pulse`}></div>
@@ -373,12 +401,38 @@ export default function OnlineGameRoom() {
                 </Button>
               </div>
             )}
+            
+            {/* Start Game button - only visible when both players are ready */}
+            {playerRole !== 'spectator' && room.status === 'waiting' && 
+              room.player1?.isReady && room.player2?.isReady && (
+              <div className="mt-4 flex justify-center">
+                <Button
+                  variant="default"
+                  className="bg-amber-500 hover:bg-amber-600 text-white"
+                  onClick={handleStartGame}
+                >
+                  Start Game
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
       
+      {/* Coin Flip */}
+      {room.status === 'coin_flip' && (
+        <div className="w-full max-w-4xl mb-6 flex justify-center">
+          <OnlineCoinFlip 
+            firstPlayer={room.currentTurn}
+            onComplete={handleCoinFlipComplete}
+            playerName1={room.player1?.name || 'Player 1'}
+            playerName2={room.player2?.name || 'Player 2'}
+          />
+        </div>
+      )}
+      
       {/* Game board */}
-      {room.status !== 'waiting' && (
+      {room.status === 'playing' && (
         <div className="w-full max-w-4xl">
           <div className="flex flex-col items-center gap-6">
             {/* Game layout with players on the sides */}
@@ -394,50 +448,15 @@ export default function OnlineGameRoom() {
               </div>
               
               {/* Game Board */}
-              <div className="game-container max-w-xl mx-auto">
-                <div className={`
-                  turn-indicator mb-4 py-2 px-4 rounded-full text-center text-white font-bold
-                  ${room.currentTurn === 'player1' ? 'bg-yellow-500/70' : 'bg-green-500/70'}
-                `}>
-                  {room.currentTurn === 'player1' ? room.player1?.name : room.player2?.name}'s Turn
-                </div>
-                
-                <motion.div 
-                  className="board-container bg-white/5 backdrop-blur-md rounded-xl p-6 shadow-xl border border-white/10"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ 
-                    type: "spring",
-                    stiffness: 100,
-                    damping: 20,
-                    duration: 0.8 
-                  }}
-                >
-                  <div className="game-board">
-                    <div className="grid grid-cols-3 gap-4 w-full aspect-square">
-                      {Array.from({ length: 3 }, (_, rowIndex) => (
-                        Array.from({ length: 3 }, (_, colIndex) => {
-                          const position = `${rowIndex}-${colIndex}` as const;
-                          const cell = room.gameState.board[position];
-                          const isValidCell = validCells.some(
-                            vc => vc.row === rowIndex && vc.col === colIndex
-                          );
-                          
-                          return (
-                            <OnlineCell 
-                              key={`${rowIndex}-${colIndex}`} 
-                              cell={cell}
-                              row={rowIndex}
-                              col={colIndex}
-                              isValidCell={isValidCell}
-                              onClick={handleCellClick}
-                            />
-                          );
-                        })
-                      ))}
-                    </div>
-                  </div>
-                </motion.div>
+              <div className="game-board-container w-full max-w-xl mx-auto">
+                <OnlineBoard
+                  board={room.gameState.board}
+                  currentTurn={room.currentTurn}
+                  validCells={validCells}
+                  onCellClick={handleCellClick}
+                  playerName1={room.player1?.name}
+                  playerName2={room.player2?.name}
+                />
               </div>
               
               {/* Player 1 Area - Right */}
@@ -462,7 +481,7 @@ export default function OnlineGameRoom() {
           <p className="mb-4">Both players need to be ready to start the game.</p>
           
           {playerRole === 'spectator' && !room.player2 && (
-            <Button onClick={() => joinGameRoom(roomId, playerName, playerId)}>
+            <Button onClick={() => joinRoom(roomId, playerName, playerId)}>
               Join as Player 2
             </Button>
           )}

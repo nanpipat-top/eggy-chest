@@ -3,31 +3,30 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { Cell as CellType, Piece } from '@/lib/types';
+import { Piece } from '@/lib/types';
 import { getPieceImage } from '@/lib/game-utils';
 import { playSound } from '@/lib/sounds';
 
 interface OnlineCellProps {
-  cell: CellType;
   row: number;
   col: number;
-  isValidCell?: boolean;
-  onClick: (row: number, col: number) => void;
+  pieces: Piece[];
+  isValidMove?: boolean;
+  onClick: () => void;
 }
 
 const OnlineCell: React.FC<OnlineCellProps> = ({ 
-  cell, 
   row, 
   col, 
-  isValidCell = false,
+  pieces, 
+  isValidMove = false,
   onClick 
 }) => {
-  const pieces = cell?.pieces || [];
   const topPiece = pieces.length > 0 ? pieces[pieces.length - 1] : null;
   
   const handleClick = () => {
-    if (isValidCell) {
-      onClick(row, col);
+    if (isValidMove) {
+      onClick();
       playSound('place');
     } else if (pieces.length > 0) {
       // If clicking on a cell with pieces but not valid for placement
@@ -38,65 +37,54 @@ const OnlineCell: React.FC<OnlineCellProps> = ({
   return (
     <motion.div
       className={cn(
-        'game-cell w-full h-full flex items-center justify-center relative bg-white/10 backdrop-blur-sm rounded-lg shadow-lg border border-white/20',
-        isValidCell && 'cell-highlight cursor-pointer border-2 border-green-400 shadow-green-300/50',
-        !isValidCell && pieces.length === 0 && 'empty-cell hover:bg-white/20',
-        !isValidCell && pieces.length > 0 && 'occupied-cell'
+        'game-cell w-full h-full flex items-center justify-center relative',
+        isValidMove && 'cell-highlight cursor-pointer',
+        !isValidMove && pieces.length === 0 && 'empty-cell',
+        !isValidMove && pieces.length > 0 && 'occupied-cell'
       )}
       onClick={handleClick}
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ 
+        opacity: 1, 
+        scale: 1,
+        transition: { 
+          type: "spring",
+          stiffness: 300,
+          damping: 20,
+          delay: (row * 3 + col) * 0.05
+        }
+      }}
       whileHover={{ 
-        scale: isValidCell ? 1.05 : 1,
-        y: isValidCell ? -5 : 0
+        scale: isValidMove ? 1.05 : 1,
+        y: isValidMove ? -5 : 0
       }}
       whileTap={{ 
-        scale: isValidCell ? 0.95 : 1 
+        scale: isValidMove ? 0.95 : 1 
       }}
     >
-      {/* Cell coordinate label (for debugging) */}
-      <div className="absolute top-1 left-1 text-xs text-white/30">
-        {row},{col}
-      </div>
+      {/* Show stack indicator if there are multiple pieces */}
+      {pieces.length > 1 && (
+        <div className="stack-indicator">
+          {pieces.length}
+        </div>
+      )}
       
-      {/* Stack of pieces */}
-      {pieces.length > 0 && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="piece-stack relative w-full h-full flex items-center justify-center">
-            {pieces.map((piece, index) => {
-              const isTop = index === pieces.length - 1;
-              const offset = index * 2; // Offset for stacking effect
-              
-              return (
-                <div 
-                  key={piece.id}
-                  className={`absolute ${getPieceSize(piece.size)}`}
-                  style={{ 
-                    zIndex: index,
-                    transform: `translateY(-${offset}px)` 
-                  }}
-                >
-                  <img 
-                    src={getPieceImage(piece.player, piece.size)} 
-                    alt={`${piece.player} ${piece.size} piece`}
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-              );
-            })}
-          </div>
+      {/* Only render the top piece */}
+      {topPiece && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <img 
+            src={getPieceImage(topPiece.player, topPiece.size)} 
+            alt={`${topPiece.player} ${topPiece.size} piece`}
+            className={`
+              ${topPiece.size === 'small' ? 'w-16 h-16 md:w-20 md:h-20' : 
+              topPiece.size === 'medium' ? 'w-22 h-22 md:w-28 md:h-28' : 
+              'w-28 h-28 md:w-36 md:h-36'}
+            `}
+          />
         </div>
       )}
     </motion.div>
   );
-};
-
-// Helper function to get CSS class for piece size
-const getPieceSize = (size: string): string => {
-  switch (size) {
-    case 'small': return 'w-8 h-8 md:w-10 md:h-10';
-    case 'medium': return 'w-12 h-12 md:w-14 md:h-14';
-    case 'large': return 'w-16 h-16 md:w-18 md:h-18';
-    default: return 'w-12 h-12';
-  }
 };
 
 export default OnlineCell;

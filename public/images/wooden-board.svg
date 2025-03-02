@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="800" height="800" viewBox="0 0 800 800" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Wood grain pattern -->
+    <pattern id="woodGrain" patternUnits="userSpaceOnUse" width="200" height="200">
+      <rect width="200" height="200" fill="#8B4513"/>
+      <!-- Vertical wood grain lines -->
+      <g fill="none" stroke="#6B3100" stroke-width="3" opacity="0.3">
+        <path d="M20,0 Q30,50 20,100 Q10,150 20,200" />
+        <path d="M60,0 Q70,70 60,140 Q50,170 60,200" />
+        <path d="M100,0 Q110,40 100,80 Q90,120 100,160 Q110,180 100,200" />
+        <path d="M140,0 Q150,60 140,120 Q130,160 140,200" />
+        <path d="M180,0 Q190,50 180,100 Q170,150 180,200" />
+      </g>
+      <!-- Horizontal wood grain knots -->
+      <g fill="#6B3100" opacity="0.2">
+        <ellipse cx="40" cy="50" rx="15" ry="10" />
+        <ellipse cx="150" cy="130" rx="20" ry="12" />
+        <ellipse cx="90" cy="170" rx="12" ry="8" />
+      </g>
+    </pattern>
+    
+    <!-- Vignette effect -->
+    <radialGradient id="vignette" cx="50%" cy="50%" r="70%" fx="50%" fy="50%">
+      <stop offset="0%" stop-color="rgba(0,0,0,0)" />
+      <stop offset="90%" stop-color="rgba(0,0,0,0)" />
+      <stop offset="100%" stop-color="rgba(0,0,0,0.5)" />
+    </radialGradient>
+  </defs>
+  
+  <!-- Main wooden board -->
+  <rect width="800" height="800" fill="url(#woodGrain)" />
+  
+  <!-- Vignette overlay -->
+  <rect width="800" height="800" fill="url(#vignette)" />
+  
+  <!-- Subtle highlights -->
+  <rect x="50" y="50" width="700" height="700" fill="white" opacity="0.05" rx="10" ry="10" />
+</svg>

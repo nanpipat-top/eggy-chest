@@ -53,7 +53,7 @@ export interface GameRoom {
   id: string;
   name: string;
   createdAt: number;
-  status: 'waiting' | 'playing' | 'finished';
+  status: 'waiting' | 'coin_flip' | 'playing' | 'finished';
   player1: PlayerInfo | null;
   player2: PlayerInfo | null;
   currentTurn: Player;

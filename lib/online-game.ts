@@ -250,37 +250,87 @@ export const setPlayerReady = async (roomId: string, playerId: string, isReady: 
       });
     }
     
-    // Check if both players are ready to start the game
-    if (roomData.player1?.isReady && roomData.player2?.isReady) {
-      // Use the board directly since generateInitialBoard now returns a Board object
-      const serializableBoard: Board = generateInitialBoard();
-      
-      // Start the game
-      const initialGameState: GameState = {
-        board: serializableBoard,
-        currentPlayer: 'player1',
-        selectedPiece: null,
-        gameStatus: 'playing',
-        winner: null,
-        availablePieces: {
-          player1: { small: 2, medium: 2, large: 2 },
-          player2: { small: 2, medium: 2, large: 2 },
-        },
-        moveHistory: [],
-      };
-      
-      // Convert to plain object to ensure it's serializable
-      const serializableGameState = JSON.parse(JSON.stringify(initialGameState));
-      
-      await updateDoc(roomRef, {
-        status: 'playing',
-        gameState: serializableGameState,
-        currentTurn: 'player1',
-        lastUpdated: Date.now()
-      });
-    }
+    // Note: We no longer automatically start the game when both players are ready
+    // This will be handled by the startGame function instead
   } catch (error) {
     console.error('Error setting player ready status:', error);
+    throw error;
+  }
+};
+
+// Start the game after both players are ready
+export const startGame = async (roomId: string, playerId: string): Promise<void> => {
+  try {
+    const roomRef = doc(db, 'gameRooms', roomId);
+    const roomSnap = await getDoc(roomRef);
+    
+    if (!roomSnap.exists()) {
+      throw new Error('Room not found');
+    }
+    
+    const roomData = roomSnap.data() as GameRoom;
+    
+    // Check if both players are ready
+    if (!roomData.player1?.isReady || !roomData.player2?.isReady) {
+      throw new Error('Both players must be ready to start the game');
+    }
+    
+    // Check if the player is one of the players in the room
+    if (roomData.player1?.id !== playerId && roomData.player2?.id !== playerId) {
+      throw new Error('Only players in the room can start the game');
+    }
+    
+    // Use the board directly since generateInitialBoard now returns a Board object
+    const serializableBoard: Board = generateInitialBoard();
+    
+    // Randomly determine first player
+    const firstPlayer: Player = Math.random() < 0.5 ? 'player1' : 'player2';
+    
+    // Start the game
+    const initialGameState: GameState = {
+      board: serializableBoard,
+      currentPlayer: firstPlayer,
+      selectedPiece: null,
+      gameStatus: 'playing',
+      winner: null,
+      availablePieces: {
+        player1: { small: 2, medium: 2, large: 2 },
+        player2: { small: 2, medium: 2, large: 2 },
+      },
+      moveHistory: [],
+    };
+    
+    // Convert to plain object to ensure it's serializable
+    const serializableGameState = JSON.parse(JSON.stringify(initialGameState));
+    
+    await updateDoc(roomRef, {
+      status: 'coin_flip',
+      gameState: serializableGameState,
+      currentTurn: firstPlayer,
+      lastUpdated: Date.now()
+    });
+  } catch (error) {
+    console.error('Error starting game:', error);
+    throw error;
+  }
+};
+
+// Complete the coin flip and start the actual game
+export const completeCoinFlip = async (roomId: string): Promise<void> => {
+  try {
+    const roomRef = doc(db, 'gameRooms', roomId);
+    const roomSnap = await getDoc(roomRef);
+    
+    if (!roomSnap.exists()) {
+      throw new Error('Room not found');
+    }
+    
+    await updateDoc(roomRef, {
+      status: 'playing',
+      lastUpdated: Date.now()
+    });
+  } catch (error) {
+    console.error('Error completing coin flip:', error);
     throw error;
   }
 };
