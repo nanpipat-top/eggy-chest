@@ -4,23 +4,23 @@
 
 :root {
   /* Game theme colors */
-  --background: 80, 60%, 85%;
-  --foreground: 80, 30%, 20%;
-  --card: 0, 0%, 100%;
-  --card-foreground: 80, 30%, 20%;
-  --primary: 350, 80%, 55%;
+  --background: 150, 30%, 15%;
+  --foreground: 150, 30%, 90%;
+  --card: 150, 25%, 20%;
+  --card-foreground: 150, 30%, 90%;
+  --primary: 150, 60%, 40%;
   --primary-foreground: 0, 0%, 100%;
-  --secondary: 200, 80%, 55%;
+  --secondary: 150, 50%, 30%;
   --secondary-foreground: 0, 0%, 100%;
-  --accent: 40, 95%, 65%;
-  --accent-foreground: 40, 90%, 30%;
-  --muted: 80, 30%, 92%;
-  --muted-foreground: 80, 30%, 50%;
-  --border: 80, 30%, 90%;
-  --input: 80, 30%, 90%;
-  --ring: 80, 90%, 65%;
+  --accent: 150, 70%, 45%;
+  --accent-foreground: 150, 15%, 95%;
+  --muted: 150, 20%, 40%;
+  --muted-foreground: 150, 30%, 70%;
+  --border: 150, 30%, 30%;
+  --input: 150, 30%, 25%;
+  --ring: 150, 60%, 50%;
   --radius: 1.5rem;
-  
+
   /* Game specific colors */
   --player1-base: 40, 100%, 65%;
   --player1-highlight: 40, 100%, 80%;
@@ -38,10 +38,10 @@
   }
   body {
     @apply bg-background text-foreground;
-    background-image: url('/images/nature-bg.jpg');
+    background-image: url("/images/nature-bg.jpg");
     background-size: cover;
     background-position: center;
-    font-family: 'Nunito', 'Segoe UI', sans-serif;
+    font-family: "Nunito", "Segoe UI", sans-serif;
   }
 }
 
@@ -59,20 +59,19 @@
   width: 100%;
   max-width: 500px;
   margin: 0 auto;
-  background: url('/images/wooden-board.svg');
+  background: url("/images/wooden-board.svg");
   background-size: cover;
   border-radius: 15px;
   padding: 20px;
-  box-shadow: 
-    0 10px 30px rgba(0, 0, 0, 0.3),
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3),
     inset 0 0 10px rgba(255, 255, 255, 0.1);
-  border: 12px solid #8B5A2B;
+  border: 12px solid #8b5a2b;
   overflow: hidden;
   aspect-ratio: 1;
 }
 
 .game-board::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   background: rgba(255, 255, 255, 0.05);
@@ -80,7 +79,7 @@
 }
 
 .game-board::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.3);
@@ -105,8 +104,7 @@
   backdrop-filter: blur(5px);
   border-radius: 12px;
   border: 2px dashed rgba(255, 255, 255, 0.3);
-  box-shadow: 
-    0 5px 15px rgba(0, 0, 0, 0.2),
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2),
     inset 0 0 5px rgba(255, 255, 255, 0.1);
   transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   aspect-ratio: 1;
@@ -116,9 +114,7 @@
 .game-cell.cell-highlight {
   background-color: rgba(0, 255, 0, 0.15);
   border-color: rgba(0, 255, 0, 0.5);
-  box-shadow: 
-    0 0 15px rgba(0, 255, 0, 0.3),
-    inset 0 0 10px rgba(0, 255, 0, 0.1);
+  box-shadow: 0 0 15px rgba(0, 255, 0, 0.3), inset 0 0 10px rgba(0, 255, 0, 0.1);
 }
 
 .game-cell.invalid-cell {
@@ -211,7 +207,7 @@
   font-weight: bold;
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
   z-index: 10;
-  border: 2px solid #FF6B6B;
+  border: 2px solid #ff6b6b;
 }
 
 .turn-indicator {
@@ -233,14 +229,14 @@
 }
 
 .turn-indicator.player1-turn {
-  border-color: #FFA500;
-  background: linear-gradient(to right, #FFD700, #FFA500);
-  color: #7E5109;
+  border-color: #ffa500;
+  background: linear-gradient(to right, #ffd700, #ffa500);
+  color: #7e5109;
 }
 
 .turn-indicator.player2-turn {
-  border-color: #FF3333;
-  background: linear-gradient(to right, #FF6B6B, #FF3333);
+  border-color: #ff3333;
+  background: linear-gradient(to right, #ff6b6b, #ff3333);
   color: white;
 }
 
@@ -253,10 +249,13 @@
   font-size: 1.1rem;
   padding: 0.75rem 1.5rem;
   border: 3px solid rgba(255, 255, 255, 0.8);
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7));
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.9),
+    rgba(255, 255, 255, 0.7)
+  );
   color: #333;
-  box-shadow: 
-    0 5px 15px rgba(0, 0, 0, 0.2),
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2),
     inset 0 1px 1px rgba(255, 255, 255, 0.5);
 }
 
@@ -273,16 +272,14 @@
   font-weight: 900;
   letter-spacing: -0.05em;
   color: white;
-  text-shadow: 
-    0 2px 0 #FFA500,
-    0 4px 10px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 2px 0 #ffa500, 0 4px 10px rgba(0, 0, 0, 0.3);
 }
 
 .stack-indicator {
   position: absolute;
   top: 2px;
   right: 2px;
-  background: #FF6B6B;
+  background: #ff6b6b;
   color: white;
   border-radius: 50%;
   width: 26px;
@@ -319,7 +316,8 @@
 
 /* Animations */
 @keyframes bounce {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {
@@ -332,7 +330,8 @@
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
     transform: scale(1);
   }
@@ -348,9 +347,22 @@
 
 /* Wooden board background */
 .wooden-board-bg {
-  background-image: 
-    radial-gradient(circle at center, rgba(139, 69, 19, 0.9) 0%, rgba(101, 67, 33, 0.95) 80%, rgba(80, 50, 20, 1) 100%),
-    linear-gradient(45deg, rgba(0, 0, 0, 0.1) 25%, transparent 25%, transparent 50%, rgba(0, 0, 0, 0.1) 50%, rgba(0, 0, 0, 0.1) 75%, transparent 75%, transparent);
+  background-image: radial-gradient(
+      circle at center,
+      rgba(139, 69, 19, 0.9) 0%,
+      rgba(101, 67, 33, 0.95) 80%,
+      rgba(80, 50, 20, 1) 100%
+    ),
+    linear-gradient(
+      45deg,
+      rgba(0, 0, 0, 0.1) 25%,
+      transparent 25%,
+      transparent 50%,
+      rgba(0, 0, 0, 0.1) 50%,
+      rgba(0, 0, 0, 0.1) 75%,
+      transparent 75%,
+      transparent
+    );
   background-size: 100% 100%, 20px 20px;
   box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.5);
   position: relative;
@@ -364,9 +376,9 @@
   right: 0;
   bottom: 0;
   background-image: repeating-linear-gradient(
-    0deg, 
-    rgba(0, 0, 0, 0.05) 0px, 
-    rgba(0, 0, 0, 0) 2px, 
+    0deg,
+    rgba(0, 0, 0, 0.05) 0px,
+    rgba(0, 0, 0, 0) 2px,
     rgba(0, 0, 0, 0.05) 4px
   );
   opacity: 0.5;
@@ -378,13 +390,14 @@
   .game-board {
     padding: 1rem;
   }
-  
+
   .game-cell {
     min-height: 90px;
     min-width: 90px;
   }
-  
-  .player1-area, .player2-area {
+
+  .player1-area,
+  .player2-area {
     margin: 10px auto;
   }
 }
@@ -394,12 +407,12 @@
   .flex-row {
     flex-direction: column;
   }
-  
+
   .player-area-side {
     width: 100%;
     margin-bottom: 20px;
   }
-  
+
   .player-selector-vertical {
     flex-direction: row;
   }
